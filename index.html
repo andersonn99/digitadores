@@ -70,7 +70,6 @@
     .danger{ color:#b00020 }
     .ok{ color:var(--green) }
 
-    /* SEMPRE 1 COLUNA */
     .result .grid{
       display:grid;
       grid-template-columns: 1fr;
@@ -90,8 +89,6 @@
     .code{
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
       font-size:15px;
-      white-space: normal;
-      overflow: visible;
       word-break: break-word;
       overflow-wrap: anywhere;
     }
@@ -107,7 +104,6 @@
 
     .footer-note{ font-size:12px; color:#666; margin-top:18px }
 
-    /* Botão flutuante do WhatsApp estilo original */
     .whatsapp-fab{
       position: fixed;
       right: 16px;
@@ -212,6 +208,15 @@
       setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),200); },1200);
     }
 
+    function trackEvent(eventName, label) {
+      if (window.gtag) {
+        gtag('event', eventName, {
+          event_category: 'Interações',
+          event_label: label
+        });
+      }
+    }
+
     function linhaCAF(code){
       const div = document.createElement('div');
       div.className = 'item';
@@ -230,6 +235,7 @@
         try{
           await navigator.clipboard.writeText(code);
           toast('Copiado!');
+          trackEvent('copiar_caf', code);
         }catch(e){ alert('Não foi possível copiar.'); }
       });
 
@@ -241,6 +247,7 @@
         try{ await navigator.clipboard.writeText(code);}catch(_){}
         const url = 'https://caf.mda.gov.br/consulta-publica/ufpa?caf=' + encodeURIComponent(code);
         window.open(url,'_blank','noopener');
+        trackEvent('lupa_caf', code);
       });
 
       actions.append(btnCopy, btnLupa);
@@ -292,26 +299,15 @@
       }
     }
 
-    // ——— RASTREAMENTO DE CONSULTAS NO GA4 ———
-    function trackConsultaCAF(caf) {
-      if (window.gtag) {
-        gtag('event', 'consulta_caf', {
-          caf_mascarado: caf,
-          origem: 'validador'
-        });
-      }
-    }
-
     btn.addEventListener('click', (e) => {
       const value = (input.value || '').toUpperCase().trim();
       if (!CAF_REGEX.test(value)) {
         e.preventDefault();
-        input.setCustomValidity('Formato inválido. Use ex: BA032025.01.00**39367CAF. Onde, após o BA é o mês e ano de inscrição.');
+        input.setCustomValidity('Formato inválido. Use ex: BA032025.01.00**39367CAF.');
         input.reportValidity();
         return;
       }
-      // Envia evento personalizado ao GA4
-      trackConsultaCAF(value);
+      trackEvent('consulta_caf', value);
       gerar();
     });
 
