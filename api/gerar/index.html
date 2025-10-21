@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Validador de CAF</title>
+  <style>
+    :root{ --green:#2e7d32; --green-700:#1b5e20; --muted:#f5f5f5; --ink:#111; --panel:#fff; }
+    *{ box-sizing:border-box }
+    body{ font-family: Arial, Helvetica, sans-serif; color:var(--ink); margin:0; background:#fff }
+    .wrap{ max-width:980px; margin:auto; padding:40px 20px }
+    h1{ color:var(--green); font-size:32px; margin:0 0 8px }
+    .lead{ margin:0 0 18px; line-height:1.5 }
+    code{ background:#eef7ee; padding:2px 6px; border-radius:6px }
+
+    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:16px 0 24px }
+    .link-btn{ display:inline-flex; align-items:center; gap:8px; text-decoration:none; border:1px solid var(--green); color:var(--green); background:transparent; border-radius:999px; padding:8px 14px; font-weight:600 }
+    .link-btn:hover{ background:var(--green); color:#fff }
+    .link-btn svg{ width:18px; height:18px }
+
+    .panel{ background:var(--panel); border:1px solid #e7e7e7; border-radius:14px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,.04) }
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+    input[type="text"]{ flex:1 1 420px; min-width:260px; padding:12px 16px; font-size:16px; border:2px solid var(--green); border-radius:999px; outline:none }
+    input[type="text"]:focus{ border-color:var(--green-700) }
+    button.primary{ padding:12px 18px; background:var(--green); color:#fff; border:none; border-radius:999px; cursor:pointer; font-weight:700 }
+    button.primary:disabled{ opacity:.6; cursor:not-allowed }
+    .hint{ font-size:13px; color:#555; margin-top:8px }
+
+    .stats{ display:flex; gap:12px; align-items:center; margin:14px 0 0; font-size:14px }
+    .badge{ display:inline-block; background:#eef7ee; color:var(--green); border:1px solid var(--green); border-radius:999px; padding:4px 10px; font-weight:600 }
+    .danger{ color:#b00020 }
+    .ok{ color:var(--green) }
+
+    .result{ margin-top:20px }
+    .grid{ display:grid; grid-template-columns:1fr; gap:8px }
+    @media (min-width:740px){ .grid{ grid-template-columns:1fr 1fr } }
+
+    .item{ display:flex; justify-content:space-between; align-items:center; background:var(--muted); padding:10px 12px; border-radius:10px; gap:10px }
+    .code{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:15px }
+    .actions{ display:flex; gap:8px; flex-wrap:wrap }
+    .ghost{ background:transparent; color:var(--green); border:1px solid var(--green); border-radius:999px; padding:6px 12px; cursor:pointer; font-weight:600 }
+    .ghost:hover{ background:var(--green); color:#fff }
+
+    .footer-note{ font-size:12px; color:#666; margin-top:18px }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>VALIDADOR DE CAF</h1>
+    <p class="lead">
+      Digite o CAF com curingas (<code>*</code>) para gerar combinações no servidor. Exemplo:
+      <code>BA032025.01.00**39367CAF</code> (cada <code>*</code> vira dígitos 0–9).
+    </p>
+
+    <div class="toolbar">
+      <a class="link-btn" href="https://www.youtube.com/watch?v=XXXXXXXXXXX" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        Vídeo de Instruções
+      </a>
+      <a class="link-btn" href="https://caf.mda.gov.br/consulta-publica/ufpa" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.9 12a5 5 0 0 1 5-5h3v2h-3a3 3 0 0 0 0 6h3v2h-3a5 5 0 0 1-5-5Zm7-1h2v2h-2v-2Zm3.1-4h3a5 5 0 0 1 0 10h-3v-2h3a3 3 0 0 0 0-6h-3V7Z"/></svg>
+        Site oficial de consulta do CAF
+      </a>
+    </div>
+
+    <div class="panel">
+      <div class="row">
+        <input id="inputCAF" type="text" placeholder="Ex.: BA032025.01.00**39367CAF" />
+        <button id="btnGerar" class="primary">GERAR CAF</button>
+      </div>
+      <div class="hint">
+        • Use letras maiúsculas, números, pontos e asteriscos. Recomenda-se terminar com <code>CAF</code>.<br/>
+        • O backend valida limites e cruza mês/ano com a planilha <code>GABARITO.xlsx</code>.
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="result" id="resultado"></div>
+
+    <p class="footer-note">
+      Dica: clique na <b>lupa</b> para abrir a consulta com o CAF já copiado. O botão <b>Copiar</b> envia o código para a sua área de transferência.
+    </p>
+  </div>
+
+  <script>
+    const input = document.getElementById('inputCAF');
+    const btn = document.getElementById('btnGerar');
+    const out = document.getElementById('resultado');
+    const stats = document.getElementById('stats');
+
+    function toast(msg){
+      const t = document.createElement('div');
+      t.textContent = msg;
+      Object.assign(t.style,{ position:'fixed', right:'16px', bottom:'16px', background:'#333', color:'#fff',
+        padding:'8px 12px', borderRadius:'10px', fontSize:'13px', opacity:'0', transition:'opacity .2s ease', zIndex:9999 });
+      document.body.appendChild(t);
+      requestAnimationFrame(()=>{ t.style.opacity='1'; });
+      setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),200); },1200);
+    }
+
+    function linhaCAF(code){
+      const div = document.createElement('div'); div.className = 'item';
+      const left = document.createElement('div'); left.className = 'code'; left.textContent = code;
+      const actions = document.createElement('div'); actions.className = 'actions';
+
+      const btnCopy = document.createElement('button');
+      btnCopy.className = 'ghost'; btnCopy.textContent = 'Copiar';
+      btnCopy.addEventListener('click', async () => {
+        try{ await navigator.clipboard.writeText(code); toast('Copiado!'); }catch(e){ alert('Não foi possível copiar.'); }
+      });
+
+      const btnLupa = document.createElement('button');
+      btnLupa.className = 'ghost'; btnLupa.innerHTML = '🔍'; btnLupa.title = 'Abrir consulta do CAF';
+      btnLupa.addEventListener('click', async () => {
+        try{ await navigator.clipboard.writeText(code);}catch(_){}
+        const url = 'https://caf.mda.gov.br/consulta-publica/ufpa?caf=' + encodeURIComponent(code);
+        window.open(url,'_blank','noopener');
+      });
+
+      actions.append(btnCopy, btnLupa);
+      div.append(left, actions);
+      return div;
+    }
+
+    async function gerar(){
+      out.innerHTML = '';
+      stats.textContent = 'Processando...';
+
+      const caf = (input.value || '').trim().toUpperCase();
+      try{
+        const resp = await fetch('/api/gerar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ caf })
+        });
+        const data = await resp.json();
+
+        if(!resp.ok){
+          stats.innerHTML = `<span class="badge danger">Erro</span> <span>${data.erro || 'Falha ao gerar.'}</span>`;
+          return;
+        }
+
+        stats.innerHTML = `<span class="badge ok">OK</span> <span>Geradas <b>${data.combos.length.toLocaleString()}</b> combinações.</span>`;
+
+        const grid = document.createElement('div'); grid.className = 'grid';
+        for(const code of data.combos){ grid.appendChild(linhaCAF(code)); }
+        out.appendChild(grid);
+
+      }catch(err){
+        stats.innerHTML = `<span class="badge danger">Erro</span> <span>${err.message}</span>`;
+      }
+    }
+
+    btn.addEventListener('click', gerar);
+    input.addEventListener('keydown', e => { if(e.key==='Enter'){ gerar(); } });
+  </script>
+</body>
+</html>
