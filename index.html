@@ -11,7 +11,6 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-  
     gtag('config', 'G-3BSBCQELCT');
   </script>
 
@@ -163,7 +162,7 @@
           type="text" 
           placeholder="Ex.: BA032025.01.00**39367CAF"
           maxlength="24"
-          pattern="^BA\d{6}\.\d{2}\.[0-9*]{9}CAF$"
+          pattern="^BA\\d{6}\\.\\d{2}\\.[0-9*]{9}CAF$"
           title="Formato válido: BA032025.01.00**39367CAF"
         />
         <button id="btnGerar" class="primary">GERAR CAF</button>
@@ -311,7 +310,8 @@
         input.reportValidity();
         return;
       }
-      trackConsultaCAF(value); // contabiliza a consulta
+      // Envia evento personalizado ao GA4
+      trackConsultaCAF(value);
       gerar();
     });
 
