@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "routes": [
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/api/gerar", "dest": "/api/gerar.py" },
+    { "src": "/api/ping", "dest": "/api/ping.py" }
+  ]
+}
